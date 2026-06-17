@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>万达商管成本属地组织架构与招采分级</title>
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --card: #222639; --border: #2e3348;
+  --text: #e8eaf0; --text2: #9ca3b4; --accent: #6c8cff; --accent2: #4fd1c5;
+  --warn: #f59e42; --danger: #ef5350; --green: #4caf50;
+  --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+
+/* Layout */
+.layout { display: flex; height: 100vh; }
+.sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); flex-shrink:0; overflow-y: auto; padding: 20px 0; position: fixed; top:0; left:0; bottom:0; z-index:100; }
+.main { flex:1; overflow-y: auto; padding: 32px 40px 32px 300px; min-height:100vh; }
+
+/* Sidebar */
+.sidebar h2 { font-size: 15px; color: var(--accent); padding: 8px 20px; letter-spacing: 1px; text-transform: uppercase; }
+.nav-item { display: block; padding: 10px 20px 10px 28px; color: var(--text2); text-decoration: none; font-size: 14px; cursor: pointer; transition: all .2s; border-left: 3px solid transparent; }
+.nav-item:hover { background: rgba(108,140,255,.08); color: var(--text); }
+.nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(108,140,255,.06); }
+.nav-group { padding: 6px 20px; font-size: 11px; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; margin-top: 12px; }
+.nav-sub { padding-left: 40px !important; font-size: 13px !important; }
+
+/* Header */
+.doc-header { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+.doc-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+.doc-header .meta { font-size: 13px; color: var(--text2); display:flex; gap:16px; flex-wrap:wrap; }
+.doc-header .meta span { white-space:nowrap; }
+
+/* Section */
+.section { margin-bottom: 40px; }
+.section-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; padding-left: 14px; border-left: 4px solid var(--accent); }
+.sub-title { font-size: 17px; font-weight: 600; margin: 20px 0 12px; color: var(--accent2); }
+
+/* Org Chart */
+.org-chart { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 24px 0; }
+.org-level { position: relative; padding: 16px 28px; border-radius: var(--radius); text-align: center; min-width: 280px; max-width: 100%; width: fit-content; transition: transform .2s; resize: horizontal; overflow: auto; min-height: 60px; }
+.org-level:hover { transform: translateY(-2px); }
+.org-level::-webkit-resizer { background: linear-gradient(135deg, transparent 50%, rgba(108,140,255,.4) 50%); width: 14px; height: 14px; }
+.org-level .role { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+.org-level .desc { font-size: 12px; color: var(--text2); }
+.org-hq { background: linear-gradient(135deg, #2a3a6e, #1e2d5a); border: 1px solid #3a5090; }
+.org-region { background: linear-gradient(135deg, #1e4a4a, #163a3a); border: 1px solid #2a6a6a; }
+.org-city { background: linear-gradient(135deg, #3a2e1e, #2e2418); border: 1px solid #5a4a2e; }
+.org-plaza { background: linear-gradient(135deg, #1e2e1e, #182418); border: 1px solid #2e4a2e; }
+.org-arrow { display:flex; flex-direction:column; align-items:center; padding:0; }
+.org-arrow .line { width:2px; height:16px; background:var(--border); }
+.org-arrow .arrow { color:var(--text2); font-size:10px; line-height:1; }
+.org-label { font-size: 14px; color: var(--warn); margin: 4px 0; padding: 2px 12px; background: rgba(245,158,66,.1); border-radius: 12px; min-width:120px; text-align:center; }
+
+/* City company split */
+.city-split { display: flex; gap: 16px; width: 100%; max-width: 600px; margin-top: 8px; }
+.city-split .org-level { flex:1; min-width: 0; resize: horizontal; }
+
+/* Table */
+.table-wrap { overflow-x: auto; margin: 16px 0; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 16px 0; table-layout: fixed; }
+.data-table th { background: var(--card); padding: 10px 14px; text-align: left; font-weight: 600; color: var(--accent); border-bottom: 2px solid var(--border); white-space: nowrap; position: relative; user-select: none; }
+.data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; }
+.data-table tr:hover td { background: rgba(108,140,255,.04); }
+.data-table [contenteditable]:focus { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; background: rgba(108,140,255,.08); }
+
+/* Column resize handle */
+.resize-handle { position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: col-resize; background: transparent; z-index: 5; }
+.resize-handle:hover, .resize-handle.active { background: var(--accent); opacity: 0.5; }
+
+/* Tag */
+.tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.tag-hq { background: rgba(42,58,110,.5); color: #8aa4ff; }
+.tag-region { background: rgba(30,74,74,.5); color: #6ad4d4; }
+.tag-city { background: rgba(58,46,30,.5); color: #d4a86a; }
+.tag-plaza { background: rgba(30,46,30,.5); color: #6ad47a; }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
+.filter-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .2s; }
+.filter-btn:hover { border-color: var(--accent); color: var(--text); }
+.filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.filter-count { font-size: 12px; color: var(--text2); margin-left: 8px; }
+
+/* Rule */
+.rule-card { background: var(--card); border-radius: var(--radius); padding: 16px 20px; margin: 8px 0; border-left: 3px solid var(--warn); }
+.rule-card [contenteditable]:focus { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; background: rgba(108,140,255,.08); }
+
+/* Stat cards */
+.stat-row { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+.stat-card { flex:1; min-width: 100px; background: var(--card); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+.stat-card .num { font-size: 26px; font-weight: 800; }
+.stat-card .label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* Editable hint */
+.edit-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent2); background: rgba(79,209,197,.1); padding: 4px 12px; border-radius: 12px; margin-bottom: 12px; }
+
+/* Search */
+.search-box { width: 100%; padding: 10px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; outline: none; margin: 12px 0; }
+.search-box:focus { border-color: var(--accent); }
+.search-box::placeholder { color: var(--text2); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height:6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+/* Print */
+@media print { .sidebar { display:none; } .main { padding: 20px; } }
+
+/* editable inline elements */
+[contenteditable] { cursor: text; }
+</style>
+</head>
+<body>
+<div class="layout">
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <h2>📑 导航</h2>
+  <a class="nav-item active" data-target="sec-overview">组织架构总览</a>
+  <a class="nav-item nav-sub" data-target="sec-problems">目前核心问题</a>
+  <a class="nav-item nav-sub" data-target="sec-viewpoints">核心观点</a>
+  <a class="nav-item" data-target="sec-resp">各层级职责定义</a>
+  <a class="nav-item nav-sub" data-target="sec-hq">总部成本部</a>
+  <a class="nav-item nav-sub" data-target="sec-region">大区成本BP</a>
+  <a class="nav-item nav-sub" data-target="sec-city-cost">城市公司成本中台</a>
+  <a class="nav-item nav-sub" data-target="sec-city-proc">城市公司采购中台</a>
+  <a class="nav-item" data-target="sec-collab">协作与制衡机制</a>
+  <a class="nav-item nav-sub" data-target="sec-boundary">职责边界</a>
+  <a class="nav-item nav-sub" data-target="sec-rules">制衡规则</a>
+  <a class="nav-item" data-target="sec-proc">招采分级分类表</a>
+  <div class="nav-group">统计概览</div>
+  <a class="nav-item nav-sub" data-target="sec-stats">分级统计</a>
+</div>
+
+<!-- Main Content -->
+<div class="main" id="mainContent">
+<div class="doc-header">
+  <h1 contenteditable="true">万达商管成本属地组织架构与招采分级</h1>
+  <div class="meta">
+    <span>📁 东区建议版</span>
+    <span>📅 2026年6月</span>
+    <span>✏️ 点击内容可直接编辑</span>
+  </div>
+</div>
+
+<!-- Section 1: Org Overview -->
+<div class="section" id="sec-overview">
+  <div class="section-title">一、组织架构总览</div>
+  <div class="edit-hint">💡 架构框内文字均可编辑，框体右下角可拖拽调整大小</div>
+  <div class="org-chart">
+    <div class="org-level org-hq">
+      <div class="role" contenteditable="true">总部成本部</div>
+      <div class="desc" contenteditable="true">成本管理中枢 + 制度输出 + 监督考核</div>
+    </div>
+    <div class="org-arrow"><div class="line"></div><div class="arrow">▼</div></div>
+    <div class="org-label" contenteditable="true">业务指导与考核</div>
+    <div class="org-level org-region">
+      <div class="role" contenteditable="true">大区成本BP</div>
+      <div class="desc" contenteditable="true">总部派驻 / 大区与总部的桥梁 / 区域管控</div>
+    </div>
+    <div class="org-arrow"><div class="line"></div><div class="arrow">▼</div></div>
+    <div class="org-label" contenteditable="true">业务管理与协调</div>
+    <div style="width:100%;max-width:640px;">
+      <div class="org-level org-city" style="margin-bottom:0;border-radius:var(--radius) var(--radius) 0 0;">
+        <div class="role" contenteditable="true">城市公司成本/采购中台</div>
+      </div>
+      <div class="city-split">
+        <div class="org-level org-city" style="border-radius:0 0 0 var(--radius);">
+          <div class="role" contenteditable="true" style="font-size:14px;">成本中台</div>
+          <div class="desc" contenteditable="true">成本组长 + 成本中台人员</div>
+        </div>
+        <div class="org-level org-city" style="border-radius:0 0 var(--radius) 0;">
+          <div class="role" contenteditable="true" style="font-size:14px;">采购中台</div>
+          <div class="desc" contenteditable="true">采购中台人员</div>
+        </div>
+      </div>
+    </div>
+    <div class="org-arrow"><div class="line"></div><div class="arrow">▼</div></div>
+    <div class="org-label" contenteditable="true">服务支撑</div>
+    <div class="org-level org-plaza">
+      <div class="role" contenteditable="true">各广场（项目端）</div>
+      <div class="desc" contenteditable="true">需求发起 / 现场执行 / 验收确认 / 数据反馈</div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 1.2: Core Problems -->
+<div class="section" id="sec-problems">
+  <div class="section-title">1.2 目前核心问题</div>
+  <div class="edit-hint">💡 点击文字可直接编辑，点击+号可新增条目</div>
+  <div id="problemList">
+    <div class="rule-card" contenteditable="true" style="border-left-color:var(--danger);">管理链条不全：方案缺位致测算被动，验收缺失致问题隐性，结算退化为验收背书</div>
+    <div class="rule-card" contenteditable="true" style="border-left-color:var(--danger);">核心定位不清晰：采购中台优势未发挥到位，总部集中办公采购中台人员尽快建立供方库，简化地方执行</div>
+  </div>
+  <button onclick="addItem('problemList','var(--danger)')" style="margin-top:10px;padding:6px 18px;border-radius:20px;border:1px dashed var(--danger);background:rgba(239,83,80,.08);color:var(--danger);font-size:13px;cursor:pointer;transition:all .2s;">＋ 添加问题</button>
+</div>
+
+<!-- Section 1.3: Core Viewpoints -->
+<div class="section" id="sec-viewpoints">
+  <div class="section-title">1.3 核心观点</div>
+  <div class="edit-hint">💡 点击文字可直接编辑，点击+号可新增条目</div>
+  <div id="viewpointList">
+    <div class="rule-card" contenteditable="true" style="border-left-color:var(--accent2);">
+      <strong>观点一：</strong>发挥总部采购中台集中办公人员职能
+    </div>
+    <div class="rule-card" contenteditable="true" style="border-left-color:var(--accent2);">
+      <strong>观点二：</strong>全合同周期管控：设计方案开始 → 测算精算 → 招采规划 → 合同签订、验收、结算 → 供方履约评估
+    </div>
+  </div>
+  <button onclick="addItem('viewpointList','var(--accent2)')" style="margin-top:10px;padding:6px 18px;border-radius:20px;border:1px dashed var(--accent2);background:rgba(79,209,197,.08);color:var(--accent2);font-size:13px;cursor:pointer;transition:all .2s;">＋ 添加观点</button>
+</div>
+
+<!-- Section 2: Responsibilities -->
+<div class="section" id="sec-resp">
+  <div class="section-title">二、各层级职责定义</div>
+
+  <div class="sub-title" id="sec-hq">2.1 总部成本部</div>
+  <div class="table-wrap">
+  <table class="data-table" style="width:auto;min-width:600px;">
+    <colgroup><col style="width:100px"><col style="width:auto"></colgroup>
+    <tr><th>维度<div class="resize-handle"></div></th><th>内容</th></tr>
+    <tr><td>定位</td><td contenteditable="true">集团成本管理中枢，制定规则、监督执行、统筹资源</td></tr>
+    <tr><td>核心职责</td><td contenteditable="true">① 制定全国成本管理制度、标准、流程（含招采分级分类标准）<br>② 审批重大改造立项<br>③ 管理战略集采目录与全国性供应商库<br>④ 对大区成本BP进行业务考核与任免建议<br>⑤ 成本数据分析、行业对标、降本增效方向指引<br>⑥ 年度成本预算审核与调整审批</td></tr>
+  </table>
+  </div>
+
+  <div class="sub-title" id="sec-region">2.2 大区成本BP</div>
+  <div class="table-wrap">
+  <table class="data-table" style="width:auto;min-width:600px;">
+    <colgroup><col style="width:100px"><col style="width:auto"></colgroup>
+    <tr><th>维度<div class="resize-handle"></div></th><th>内容</th></tr>
+    <tr><td>定位</td><td contenteditable="true">总部派驻大区，是总部意志在大区的延伸，也是大区成本工作的业务负责人</td></tr>
+    <tr><td>汇报关系</td><td contenteditable="true">行政上向大区总汇报，业务上向总部成本部双线汇报</td></tr>
+    <tr><td>核心职责</td><td contenteditable="true">① 落实总部成本制度在大区的执行，确保不走样<br>② 组织规划、统筹大区域内集采招标<br>③ 审核城市公司成本中台的月度/季度工作成果<br>④ 协调跨城市公司的资源调配（如供应商共享、经验复用）<br>⑤ 区域成本异常预警与上报（超预算、合规风险等）<br>⑥ 推动区域降本增效专项落地</td></tr>
+    <tr><td>关键抓手</td><td contenteditable="true">① 中台人员业务考核权（建议权+一定比例决定权）<br>② 区域成本数据看板（预算执行率、招采合规率、降本达成率）</td></tr>
+  </table>
+  </div>
+
+  <div class="sub-title" id="sec-city-cost">2.3 城市公司成本中台</div>
+  <p style="color:var(--text2);font-size:13px;margin-bottom:8px;" contenteditable="true">组织结构：成本组长 + 成本中台人员</p>
+
+  <p style="font-weight:600;color:var(--warn);margin:12px 0 6px;" contenteditable="true">成本组长（中台负责人）：</p>
+  <div class="table-wrap">
+  <table class="data-table" style="width:auto;min-width:600px;">
+    <colgroup><col style="width:100px"><col style="width:auto"></colgroup>
+    <tr><th>维度<div class="resize-handle"></div></th><th>内容</th></tr>
+    <tr><td>定位</td><td contenteditable="true">成本中台的一线指挥，对城市公司成本工作全面负责</td></tr>
+    <tr><td>核心职责</td><td contenteditable="true">① 编制城市公司年度成本预算，分解到各广场<br>② 审批项目立项与定标<br>③ 组织成本中台人员开展具体业务（测算、招标、合同、结算）<br>④ 协调采购中台，确保成本与采购工作衔接顺畅<br>⑤ 向大区成本BP定期汇报工作，及时上报异常<br>⑥ 对广场提报的需求进行初审和优先级排序</td></tr>
+  </table>
+  </div>
+
+  <p style="font-weight:600;color:var(--warn);margin:12px 0 6px;" contenteditable="true">成本中台人员：</p>
+  <div class="table-wrap">
+  <table class="data-table" style="width:auto;min-width:600px;">
+    <colgroup><col style="width:100px"><col style="width:auto"></colgroup>
+    <tr><th>维度<div class="resize-handle"></div></th><th>内容</th></tr>
+    <tr><td>定位</td><td contenteditable="true">成本专业执行者，按业务条线分工</td></tr>
+    <tr><td>核心职责</td><td contenteditable="true">① 改造测算：接收广场改造需求，编制成本测算，出具测算报告<br>② 招标管理：编制招标文件、组织评标、编写评标报告<br>③ 合同管理：合同起草、履约跟踪、变更审批、结算审核<br>④ 价格审核：对广场提报的采购/维修报价进行审核把关<br>⑤ 数据维护：维护城市公司造价价格数据库，定期更新<br>⑥ 事后评估：项目完工后的成本复盘与经验沉淀</td></tr>
+  </table>
+  </div>
+
+  <div class="sub-title" id="sec-city-proc">2.4 城市公司采购中台</div>
+  <div class="table-wrap">
+  <table class="data-table" style="width:auto;min-width:600px;">
+    <colgroup><col style="width:100px"><col style="width:auto"></colgroup>
+    <tr><th>维度<div class="resize-handle"></div></th><th>内容</th></tr>
+    <tr><td>定位</td><td contenteditable="true">与成本中台并列，专注采购执行的专业平台</td></tr>
+    <tr><td>核心职责</td><td contenteditable="true">① 执行成本中台确定的采购方案，完成供应商寻源、谈判、签约<br>② 管理城市公司层面的框架协议和合格供应商库<br>③ 对接集采物资的下单、到货、验收流程<br>④ 采购过程合规性把控（回避、比价、审批链完整）<br>⑤ 采购数据分析与供应商绩效评估</td></tr>
+    <tr><td>与成本中台关系</td><td contenteditable="true">成本中台「定规则、审价格」，采购中台「找资源、谈条件」<br>成本中台出测算和招标文件 → 采购中台执行寻源谈判 → 成本中台审核结果；两者相互制衡，避免「既当裁判又当运动员」</td></tr>
+  </table>
+  </div>
+</div>
+
+<!-- Section 4: Collaboration -->
+<div class="section" id="sec-collab">
+  <div class="section-title">四、成本中台与采购中台协作机制</div>
+
+  <div class="sub-title" id="sec-boundary">4.1 职责边界</div>
+  <div class="table-wrap">
+  <table class="data-table" style="width:auto;min-width:700px;">
+    <colgroup><col style="width:120px"><col style="width:auto"><col style="width:auto"></colgroup>
+    <tr><th>环节<div class="resize-handle"></div></th><th>成本中台负责<div class="resize-handle"></div></th><th>采购中台负责</th></tr>
+    <tr><td contenteditable="true">测算阶段</td><td contenteditable="true">✅ 编制成本测算、确定目标价</td><td>❌</td></tr>
+    <tr><td contenteditable="true">招标阶段</td><td contenteditable="true">✅ 编制招标文件、技术规格、评标办法</td><td contenteditable="true">✅ 寻源、发标、组织答疑</td></tr>
+    <tr><td contenteditable="true">谈判阶段</td><td contenteditable="true">✅ 提供价格底线与谈判策略</td><td contenteditable="true">✅ 主谈商务条件</td></tr>
+    <tr><td contenteditable="true">定标阶段</td><td contenteditable="true">✅ 价格合理性审查、出具审查意见</td><td contenteditable="true">✅ 供应商综合评估</td></tr>
+    <tr><td contenteditable="true">合同阶段</td><td contenteditable="true">✅ 合同成本条款审核</td><td contenteditable="true">✅ 合同商务条款起草</td></tr>
+    <tr><td contenteditable="true">执行阶段</td><td contenteditable="true">✅ 变更审核、进度款审核</td><td contenteditable="true">✅ 供应商履约协调</td></tr>
+    <tr><td contenteditable="true">结算阶段</td><td contenteditable="true">✅ 结算审核（量价核对）</td><td contenteditable="true">✅ 供应商评价归档</td></tr>
+  </table>
+  </div>
+
+  <div class="sub-title" id="sec-rules">4.2 制衡规则</div>
+  <div class="rule-card" contenteditable="true">1. 成本中台不直接谈判 — 避免价格底线泄露，也避免「既审又谈」</div>
+  <div class="rule-card" contenteditable="true">2. 采购中台不自行定价 — 最终价格必须经成本中台审核确认</div>
+  <div class="rule-card" contenteditable="true">3. 同一项目成本/采购人员不得交叉 — 保证独立性</div>
+  <div class="rule-card" contenteditable="true">4. 定标决策权与执行权分离 — 成本组长审批（或上报），采购执行签约</div>
+</div>
+
+<!-- Section: Procurement Classification Table -->
+<div class="section" id="sec-proc">
+  <div class="section-title">招采任务分级分类表（东区建议）</div>
+  <div class="edit-hint">💡 单元格可编辑 | 表头列宽可拖拽调整 | 筛选和搜索实时联动</div>
+
+  <!-- Stats -->
+  <div id="sec-stats" class="stat-row"></div>
+
+  <!-- Search -->
+  <input class="search-box" type="text" id="searchBox" placeholder="🔍 搜索业务名称、类别...">
+
+  <!-- Category filters -->
+  <div class="filter-bar" id="categoryFilters">
+    <button class="filter-btn active" data-cat="all">全部</button>
+    <button class="filter-btn" data-cat="工程类">🏗️ 工程类</button>
+    <button class="filter-btn" data-cat="物业类">🏘️ 物业类</button>
+    <button class="filter-btn" data-cat="行政类">📋 行政类</button>
+    <button class="filter-btn" data-cat="企划类">🎯 企划类</button>
+    <button class="filter-btn" data-cat="其他">📎 其他</button>
+  </div>
+
+  <!-- Level filters -->
+  <div class="filter-bar" id="levelFilters">
+    <span style="font-size:13px;color:var(--text2);">按主导层级：</span>
+    <button class="filter-btn active" data-level="all">全部</button>
+    <button class="filter-btn" data-level="总部">🏛️ 总部集采</button>
+    <button class="filter-btn" data-level="大区">🏢 大区集采</button>
+    <button class="filter-btn" data-level="城市公司">🏬 城市公司</button>
+    <button class="filter-btn" data-level="广场">🏪 广场经办</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+  <table class="data-table" id="procTable" style="min-width:1000px;">
+    <colgroup>
+      <col style="width:50px">
+      <col style="width:80px">
+      <col style="width:auto">
+      <col style="width:130px">
+      <col style="width:120px">
+      <col style="width:130px">
+      <col style="width:110px">
+    </colgroup>
+    <thead>
+      <tr id="procHead">
+        <th>序号<div class="resize-handle"></div></th>
+        <th>采购大类<div class="resize-handle"></div></th>
+        <th>具体业务<div class="resize-handle"></div></th>
+        <th>总部<div class="resize-handle"></div></th>
+        <th>大区<div class="resize-handle"></div></th>
+        <th>城市公司<div class="resize-handle"></div></th>
+        <th>广场</th>
+      </tr>
+    </thead>
+    <tbody id="procBody"></tbody>
+  </table>
+  </div>
+  <div class="filter-count" id="filterCount"></div>
+</div>
+
+</div><!-- main -->
+</div><!-- layout -->
+
+<script>
+// ===== DATA =====
+const DATA = [
+  {id:1,cat:"工程类",biz:"电梯维保及修理（不按年限区分）",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:2,cat:"工程类",biz:"能源温管理平台系统维保",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:3,cat:"工程类",biz:"慧云3.0平台维保",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:4,cat:"工程类",biz:"第三方工程检测",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:5,cat:"工程类",biz:"制冷主机维保（合并维修）",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:6,cat:"工程类",biz:"水泵采购+高效水泵",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:7,cat:"工程类",biz:"EMC高效水泵",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:8,cat:"工程类",biz:"AI智控",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:9,cat:"工程类",biz:"风机",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:10,cat:"工程类",biz:"普通灯具",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:11,cat:"工程类",biz:"EMC灯具",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:12,cat:"工程类",biz:"隔油池设备",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:13,cat:"工程类",biz:"电缆",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:14,cat:"工程类",biz:"门帘",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:15,cat:"工程类",biz:"油漆、涂料",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:16,cat:"工程类",biz:"卫生间五金洁具",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:17,cat:"工程类",biz:"石材、瓷砖",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:18,cat:"工程类",biz:"饰面板",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:19,cat:"工程类",biz:"导向标识",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:20,cat:"工程类",biz:"休闲座椅、花缸花艺",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:21,cat:"物业类",biz:"物业品质检测",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:22,cat:"物业类",biz:"铁马、石球等物业大宗耗材",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:23,cat:"物业类",biz:"保洁设备",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:24,cat:"物业类",biz:"卫生间大卷纸",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:25,cat:"物业类",biz:"保洁香氛",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:26,cat:"工程类",biz:"光伏",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:27,cat:"行政类",biz:"办公用品、福利",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:28,cat:"其他",biz:"造价咨询",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"执行"},
+  {id:29,cat:"工程类",biz:"储能",hq:"总部集中采购",region:"预算管控",city:"审批与执行",plaza:"审批与执行"},
+  {id:30,cat:"工程类",biz:"漏水、防水维修工程",hq:"制度与标准",region:"大区集采",city:"预算管控",plaza:"审批与执行"},
+  {id:31,cat:"企划类",biz:"VI设计外包（含筹开期平面设计）",hq:"制度与标准",region:"大区集采",city:"预算管控",plaza:"审批与执行"},
+  {id:32,cat:"企划类",biz:"自媒体运维外包",hq:"制度与标准",region:"大区集采",city:"预算管控",plaza:"审批与执行"},
+  {id:33,cat:"工程类",biz:"专项改造/高品质施工",hq:"制度与标准",region:"大区集采",city:"预算管控",plaza:"审批与执行"},
+  {id:34,cat:"工程类",biz:"改造设计",hq:"制度与标准",region:"大区集采",city:"预算管控",plaza:"审批与执行"},
+  {id:35,cat:"物业类",biz:"消杀",hq:"制度与标准",region:"大区集采",city:"预算管控",plaza:"审批与执行"},
+  {id:36,cat:"工程类",biz:"专项维修",hq:"制度与标准",region:"大区集采",city:"预算管控",plaza:"审批与执行"},
+  {id:37,cat:"工程类",biz:"直购电",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:38,cat:"工程类",biz:"广场年度综合维修（确定几家单位）",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:39,cat:"工程类",biz:"锅炉清洗",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:40,cat:"企划类",biz:"广场企划活动、物料",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:41,cat:"企划类",biz:"开业活动",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:42,cat:"企划类",biz:"开业美陈",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:43,cat:"物业类",biz:"高空清洗",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:44,cat:"物业类",biz:"卫生间深度清洁服务",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:45,cat:"物业类",biz:"污水间、隔油池清掏",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:46,cat:"工程类",biz:"电气检测",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:47,cat:"工程类",biz:"空调末端清洗",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:48,cat:"工程类",biz:"油烟管道及管道清洗",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:49,cat:"物业类",biz:"石材养护外包服务",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:50,cat:"工程类",biz:"消防检测",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:51,cat:"工程类",biz:"电气防火安全检测",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:52,cat:"工程类",biz:"空气质量检测",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:53,cat:"工程类",biz:"高低压检测",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:54,cat:"工程类",biz:"防雷检测",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:55,cat:"工程类",biz:"消防安全评估",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:56,cat:"工程类",biz:"消防改造",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:57,cat:"企划类",biz:"媒体广告发布年度合作",hq:"制度与标准",region:"预算管控",city:"城市公司集采",plaza:"审批与执行"},
+  {id:58,cat:"物业类",biz:"生活垃圾清运服务",hq:"制度与标准",region:"预算管控",city:"预算管控",plaza:"广场经办"},
+  {id:59,cat:"工程类",biz:"水质检测及清洗",hq:"制度与标准",region:"预算管控",city:"预算管控",plaza:"广场经办"},
+  {id:60,cat:"物业类",biz:"绿化养护、补种",hq:"制度与标准",region:"预算管控",city:"预算管控",plaza:"广场经办"},
+  {id:61,cat:"行政类",biz:"信息机房维保",hq:"制度与标准",region:"预算管控",city:"预算管控",plaza:"广场经办"},
+  {id:62,cat:"行政类",biz:"食堂食材供应",hq:"制度与标准",region:"预算管控",city:"预算管控",plaza:"广场经办"},
+];
+
+let currentCat = 'all';
+let currentLevel = 'all';
+
+function getLevel(d) {
+  if (d.hq.includes('集中采购')) return '总部';
+  if (d.region.includes('大区集采')) return '大区';
+  if (d.city.includes('城市公司集采')) return '城市公司';
+  if (d.plaza.includes('广场经办')) return '广场';
+  return '总部';
+}
+
+function tagClass(val) {
+  if (val.includes('总部集中采购')) return 'tag-hq';
+  if (val.includes('大区集采')) return 'tag-region';
+  if (val.includes('城市公司集采')) return 'tag-city';
+  if (val.includes('广场经办')) return 'tag-plaza';
+  return '';
+}
+
+function isKeyRole(val) {
+  return val.includes('集中采购') || val.includes('大区集采') || val.includes('城市公司集采') || val.includes('广场经办');
+}
+
+function renderStats() {
+  const total = DATA.length;
+  const hq = DATA.filter(d=>getLevel(d)==='总部').length;
+  const region = DATA.filter(d=>getLevel(d)==='大区').length;
+  const city = DATA.filter(d=>getLevel(d)==='城市公司').length;
+  const plaza = DATA.filter(d=>getLevel(d)==='广场').length;
+  const cats = {};
+  DATA.forEach(d => { cats[d.cat] = (cats[d.cat]||0)+1; });
+  document.getElementById('sec-stats').innerHTML = `
+    <div class="stat-card"><div class="num" style="color:var(--accent)">${total}</div><div class="label">总条目</div></div>
+    <div class="stat-card"><div class="num" style="color:#8aa4ff">${hq}</div><div class="label">总部集采</div></div>
+    <div class="stat-card"><div class="num" style="color:#6ad4d4">${region}</div><div class="label">大区集采</div></div>
+    <div class="stat-card"><div class="num" style="color:#d4a86a">${city}</div><div class="label">城市公司集采</div></div>
+    <div class="stat-card"><div class="num" style="color:#6ad47a">${plaza}</div><div class="label">广场经办</div></div>
+    ${Object.entries(cats).map(([k,v])=>`<div class="stat-card"><div class="num" style="color:var(--text2)">${v}</div><div class="label">${k}</div></div>`).join('')}
+  `;
+}
+
+function renderTable() {
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  let filtered = DATA.filter(d => {
+    if (currentCat !== 'all' && d.cat !== currentCat) return false;
+    if (currentLevel !== 'all' && getLevel(d) !== currentLevel) return false;
+    if (search && !d.biz.toLowerCase().includes(search) && !d.cat.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const tbody = document.getElementById('procBody');
+  tbody.innerHTML = filtered.map(d => {
+    const makeTag = (val) => isKeyRole(val) ? `<span class="tag ${tagClass(val)}">${val}</span>` : val;
+    return `<tr>
+      <td>${d.id}</td>
+      <td><span class="tag ${d.cat==='工程类'?'tag-hq':d.cat==='物业类'?'tag-region':d.cat==='企划类'?'tag-city':'tag-plaza'}">${d.cat}</span></td>
+      <td contenteditable="true">${d.biz}</td>
+      <td>${makeTag(d.hq)}</td>
+      <td>${makeTag(d.region)}</td>
+      <td>${makeTag(d.city)}</td>
+      <td>${makeTag(d.plaza)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('filterCount').textContent = `显示 ${filtered.length} / ${DATA.length} 条`;
+}
+
+// ===== NAVIGATION =====
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    const targetId = this.getAttribute('data-target');
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Update active state
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      this.classList.add('active');
+    }
+  });
+});
+
+// Scroll spy
+const mainEl = document.getElementById('mainContent');
+const allSections = ['sec-overview','sec-problems','sec-viewpoints','sec-resp','sec-hq','sec-region','sec-city-cost','sec-city-proc','sec-collab','sec-boundary','sec-rules','sec-proc','sec-stats'];
+mainEl.addEventListener('scroll', () => {
+  let current = '';
+  allSections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      if (rect.top <= 150) current = id;
+    }
+  });
+  if (current) {
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.classList.toggle('active', n.getAttribute('data-target') === current);
+    });
+  }
+});
+
+// ===== FILTERS =====
+document.querySelectorAll('#categoryFilters .filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('#categoryFilters .filter-btn').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+    currentCat = this.dataset.cat;
+    renderTable();
+  });
+});
+document.querySelectorAll('#levelFilters .filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('#levelFilters .filter-btn').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+    currentLevel = this.dataset.level;
+    renderTable();
+  });
+});
+document.getElementById('searchBox').addEventListener('input', renderTable);
+
+// ===== COLUMN RESIZE =====
+(function() {
+  let isResizing = false;
+  let currentHandle = null;
+  let startX = 0;
+  let startWidth = 0;
+  let currentCol = null;
+
+  document.addEventListener('mousedown', function(e) {
+    const handle = e.target.closest('.resize-handle');
+    if (!handle) return;
+    e.preventDefault();
+    isResizing = true;
+    currentHandle = handle;
+    const th = handle.parentElement;
+    const table = th.closest('table');
+    const cellIndex = Array.from(th.parentNode.children).indexOf(th);
+    const colGroup = table.querySelector('colgroup');
+    if (colGroup) {
+      currentCol = colGroup.children[cellIndex];
+    } else {
+      currentCol = null;
+    }
+    startX = e.pageX;
+    startWidth = th.offsetWidth;
+    handle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isResizing) return;
+    const diff = e.pageX - startX;
+    const newWidth = Math.max(40, startWidth + diff);
+    const th = currentHandle.parentElement;
+    th.style.width = newWidth + 'px';
+    if (currentCol) {
+      currentCol.style.width = newWidth + 'px';
+    }
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (isResizing) {
+      isResizing = false;
+      if (currentHandle) currentHandle.classList.remove('active');
+      currentHandle = null;
+      currentCol = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+})();
+
+// ===== ADD ITEM =====
+function addItem(containerId, borderColor) {
+  const container = document.getElementById(containerId);
+  const div = document.createElement('div');
+  div.className = 'rule-card';
+  div.contentEditable = 'true';
+  div.style.borderLeftColor = borderColor;
+  div.textContent = '点击编辑新内容...';
+  div.addEventListener('focus', function() {
+    if (this.textContent === '点击编辑新内容...') this.textContent = '';
+  });
+  container.appendChild(div);
+  div.focus();
+}
+
+// ===== AUTO SAVE / RESTORE (localStorage) =====
+const SAVE_KEY = 'wd_org_v2';
+let saveTimer = null;
+
+function collectEdits() {
+  const edits = {};
+  // Collect all contenteditable elements
+  document.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
+    edits['ce_' + i] = el.innerHTML;
+  });
+  // Collect editable table cells
+  document.querySelectorAll('#procBody td[contenteditable]').forEach((el, i) => {
+    edits['td_' + i] = el.innerHTML;
+  });
+  // Collect dynamically added items (problems, viewpoints)
+  const problems = document.querySelectorAll('#problemList .rule-card');
+  edits['problemCount'] = problems.length;
+  const viewpoints = document.querySelectorAll('#viewpointList .rule-card');
+  edits['viewpointCount'] = viewpoints.length;
+  return edits;
+}
+
+function applyEdits(edits) {
+  if (!edits) return;
+  document.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
+    if (edits['ce_' + i] !== undefined) el.innerHTML = edits['ce_' + i];
+  });
+  document.querySelectorAll('#procBody td[contenteditable]').forEach((el, i) => {
+    if (edits['td_' + i] !== undefined) el.innerHTML = edits['td_' + i];
+  });
+}
+
+function autoSave() {
+  try {
+    const edits = collectEdits();
+    localStorage.setItem(SAVE_KEY, JSON.stringify(edits));
+    // Show save indicator
+    const indicator = document.getElementById('saveIndicator');
+    indicator.style.opacity = '1';
+    setTimeout(() => { indicator.style.opacity = '0'; }, 1500);
+  } catch(e) {}
+}
+
+function loadSaved() {
+  try {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (saved) {
+      applyEdits(JSON.parse(saved));
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// Listen for edits and debounce save
+document.addEventListener('input', function(e) {
+  if (e.target.closest('[contenteditable]') || e.target.hasAttribute('contenteditable')) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(autoSave, 800);
+  }
+});
+
+// ===== INIT =====
+renderStats();
+renderTable();
+// Restore saved edits
+loadSaved();
+</script>
+
+<!-- Auto-save indicator -->
+<div id="saveIndicator" style="
+  position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+  padding: 10px 20px; border-radius: 20px;
+  background: rgba(76,175,80,.9); color: #fff; font-size: 13px; font-weight: 600;
+  opacity: 0; transition: opacity .4s; pointer-events: none;
+  box-shadow: 0 2px 12px rgba(76,175,80,.3);
+">✅ 已自动保存</div>
+</body>
+</html>
