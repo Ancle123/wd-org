@@ -636,6 +636,16 @@ function collectEdits() {
   edits['problemCount'] = problems.length;
   const viewpoints = document.querySelectorAll('#viewpointList .rule-card');
   edits['viewpointCount'] = viewpoints.length;
+  // Collect org-level box widths (resized via CSS resize)
+  document.querySelectorAll('.org-level').forEach((el, i) => {
+    edits['orgw_' + i] = el.style.width || '';
+  });
+  // Collect table column widths
+  document.querySelectorAll('table.data-table').forEach((tbl, ti) => {
+    tbl.querySelectorAll('col').forEach((col, ci) => {
+      if (col.style.width) edits['tcw_' + ti + '_' + ci] = col.style.width;
+    });
+  });
   return edits;
 }
 
@@ -646,6 +656,16 @@ function applyEdits(edits) {
   });
   document.querySelectorAll('#procBody td[contenteditable]').forEach((el, i) => {
     if (edits['td_' + i] !== undefined) el.innerHTML = edits['td_' + i];
+  });
+  // Restore org-level box widths
+  document.querySelectorAll('.org-level').forEach((el, i) => {
+    if (edits['orgw_' + i]) el.style.width = edits['orgw_' + i];
+  });
+  // Restore table column widths
+  document.querySelectorAll('table.data-table').forEach((tbl, ti) => {
+    tbl.querySelectorAll('col').forEach((col, ci) => {
+      if (edits['tcw_' + ti + '_' + ci]) col.style.width = edits['tcw_' + ti + '_' + ci];
+    });
   });
 }
 
@@ -677,6 +697,15 @@ document.addEventListener('input', function(e) {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(autoSave, 800);
   }
+});
+
+// Listen for org-level box resize (CSS resize doesn't fire input, need mouseup)
+document.querySelectorAll('.org-level').forEach(el => {
+  const observer = new MutationObserver(() => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(autoSave, 800);
+  });
+  observer.observe(el, { attributes: true, attributeFilter: ['style'] });
 });
 
 // ===== INIT =====
